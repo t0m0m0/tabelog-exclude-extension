@@ -1,0 +1,130 @@
+/* デフォルト（コンテンツエリア内）スタイル */
+.tlx-exclude {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+  padding: 8px 12px;
+  background: #fff7e0;
+  border: 1px solid #e0c878;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #333;
+  box-sizing: border-box;
+}
+
+.tlx-exclude__input {
+  flex: 1;
+  min-width: 200px;
+  padding: 4px 8px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  font-size: 13px;
+  font-weight: normal;
+  background: #fff;
+  color: #333;
+}
+
+.tlx-exclude__input:focus {
+  outline: none;
+  border-color: #d57e21;
+  box-shadow: 0 0 0 2px rgba(213, 126, 33, 0.2);
+}
+
+/* ヘッダー検索バー内スタイル */
+form.rstlst-search-header .tlx-exclude {
+  display: flex;
+  align-items: center;
+  height: 36px;
+  margin: 0;
+  padding: 0 8px;
+  background: transparent;
+  border: none;
+  border-left: 1px solid #b4b4b4;
+  border-radius: 0;
+  font-size: 12px;
+  flex: 0 1 auto;
+  min-width: 180px;
+  gap: 4px;
+  box-sizing: border-box;
+  color: #13131e;
+}
+
+form.rstlst-search-header .tlx-exclude__input {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  padding: 0 4px;
+  border: none;
+  border-radius: 0;
+  font-size: 12px;
+  font-weight: normal;
+  background: transparent;
+  color: #13131e;
+  box-shadow: none;
+}
+
+form.rstlst-search-header .tlx-exclude__input:focus {
+  outline: none;
+  border: none;
+  box-shadow: none;
+}
+
+
+/* トップページヘッダー内スタイル */
+form.p-global-search .p-global-search__search-wrap {
+  position: static !important;
+}
+
+form.p-global-search .p-global-search-suggest__wrap {
+  display: flex !important;
+  width: auto !important;
+}
+
+form.p-global-search .tlx-exclude {
+  display: flex;
+  align-items: center;
+  height: 52px;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-left: 1px solid #b4b4b4;
+  border-radius: 0;
+  font-size: 15px;
+  flex: 0 0 auto;
+  min-width: 210px;
+  box-sizing: border-box;
+  color: #13131e;
+}
+
+form.p-global-search .tlx-exclude__input {
+  flex: 1;
+  height: 52px;
+  padding: 0 20px 0 14px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  font-size: 15px;
+  font-weight: normal;
+  color: #13131e;
+  outline: none;
+  box-shadow: none;
+  box-sizing: border-box;
+}
+
+form.p-global-search .tlx-exclude__input:focus {
+  outline: none;
+  border: none;
+  box-shadow: none;
+}
+
+.tlx-page-count-note {
+  margin-left: 6px;
+  color: #c0392b;
+  font-size: 0.9em;
+}
+
+.tlx-hidden {
+  display: none !important;
+}
