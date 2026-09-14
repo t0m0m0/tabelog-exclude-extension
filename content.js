@@ -63,15 +63,22 @@
     return null;
   };
 
-  const collectText = (card, selectors) => {
-    const parts = [];
+  // セレクタが重複してマッチしても同じ要素は1回だけ返す
+  const collectElements = (card, selectors) => {
+    const elements = new Set();
     for (const sel of selectors) {
-      card.querySelectorAll(sel).forEach((el) => {
-        const text = (el.textContent || '').trim();
-        if (text) parts.push(text);
-      });
+      card.querySelectorAll(sel).forEach((el) => elements.add(el));
     }
-    return parts.join(' ');
+    return elements;
+  };
+
+  const collectTexts = (card, selectors) => {
+    const texts = [];
+    collectElements(card, selectors).forEach((el) => {
+      const text = (el.textContent || '').trim();
+      if (text) texts.push(text);
+    });
+    return texts;
   };
 
   // 「エリア / ジャンル1、ジャンル2」形式からジャンル部分だけを取り出す
@@ -91,11 +98,13 @@
     return cards;
   };
 
+  // 店名・ジャンルは要素ごとに個別照合する（連結して要素をまたいだ誤一致を防ぐ）
   const shouldHide = (card) => {
-    const name = normalize(collectText(card, RST_NAME_SELECTORS));
-    const genre = normalize(extractGenre(collectText(card, RST_GENRE_SELECTORS)));
-    if (!name && !genre) return false;
-    return currentKeywords.some((kw) => name.includes(kw) || (!!genre && genre.includes(kw)));
+    const names = collectTexts(card, RST_NAME_SELECTORS).map(normalize);
+    const genres = collectTexts(card, RST_GENRE_SELECTORS).map((text) => normalize(extractGenre(text)));
+    const targets = names.concat(genres).filter(Boolean);
+    if (targets.length === 0) return false;
+    return currentKeywords.some((kw) => targets.some((text) => text.includes(kw)));
   };
 
   const applyFilter = () => {
