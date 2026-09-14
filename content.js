@@ -22,6 +22,13 @@
     '.cpy-rst-name',
   ];
 
+  const RST_GENRE_SELECTORS = [
+    '.list-rst__area-genre',
+    '.cpy-area-genre',
+    '.list-rst__rst-genre',
+    '.list-rst__genre',
+  ];
+
   const NEXT_PAGE_SELECTORS = [
     'a[rel="next"]',
     '.c-pagination__arrow--next > a',
@@ -56,16 +63,45 @@
     return null;
   };
 
-  const applyFilter = () => {
-    document.querySelectorAll('.' + HIDDEN_CLASS).forEach((el) => el.classList.remove(HIDDEN_CLASS));
+  const collectText = (card, selectors) => {
+    const parts = [];
+    for (const sel of selectors) {
+      card.querySelectorAll(sel).forEach((el) => {
+        const text = (el.textContent || '').trim();
+        if (text) parts.push(text);
+      });
+    }
+    return parts.join(' ');
+  };
 
-    const allCards = new Set();
+  // 「エリア / ジャンル1、ジャンル2」形式からジャンル部分だけを取り出す
+  const extractGenre = (text) => {
+    const idx = text.search(/[／/]/);
+    return idx === -1 ? text : text.slice(idx + 1);
+  };
+
+  const collectCards = () => {
+    const cards = new Set();
     for (const sel of RST_NAME_SELECTORS) {
       document.querySelectorAll(sel).forEach((nameEl) => {
         const card = findCardContainer(nameEl);
-        if (card) allCards.add(card);
+        if (card) cards.add(card);
       });
     }
+    return cards;
+  };
+
+  const shouldHide = (card) => {
+    const name = normalize(collectText(card, RST_NAME_SELECTORS));
+    const genre = normalize(extractGenre(collectText(card, RST_GENRE_SELECTORS)));
+    if (!name && !genre) return false;
+    return currentKeywords.some((kw) => name.includes(kw) || (!!genre && genre.includes(kw)));
+  };
+
+  const applyFilter = () => {
+    document.querySelectorAll('.' + HIDDEN_CLASS).forEach((el) => el.classList.remove(HIDDEN_CLASS));
+
+    const allCards = collectCards();
     const total = allCards.size;
 
     if (currentKeywords.length === 0) {
@@ -73,22 +109,15 @@
       return { total, hidden: 0 };
     }
 
-    const hiddenCards = new Set();
-    for (const sel of RST_NAME_SELECTORS) {
-      document.querySelectorAll(sel).forEach((nameEl) => {
-        const name = normalize(nameEl.textContent);
-        if (!name) return;
-        if (!currentKeywords.some((kw) => name.includes(kw))) return;
-        const card = findCardContainer(nameEl);
-        if (card && !hiddenCards.has(card)) {
-          card.classList.add(HIDDEN_CLASS);
-          hiddenCards.add(card);
-        }
-      });
-    }
+    let hidden = 0;
+    allCards.forEach((card) => {
+      if (!shouldHide(card)) return;
+      card.classList.add(HIDDEN_CLASS);
+      hidden += 1;
+    });
 
-    updateCounter(hiddenCards.size);
-    return { total, hidden: hiddenCards.size };
+    updateCounter(hidden);
+    return { total, hidden };
   };
 
   const findNextPageLink = () => {
@@ -135,7 +164,7 @@
     const input = document.createElement('input');
     input.type = 'text';
     input.className = 'tlx-exclude__input';
-    input.placeholder = '除外キーワード（店名）';
+    input.placeholder = '除外キーワード（店名・ジャンル）';
     input.value = (currentKeywords || []).join(' ');
 
     wrapper.appendChild(input);
