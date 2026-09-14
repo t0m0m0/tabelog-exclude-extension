@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<!--
+  検索結果2ページ目の再現ページ。「全件非表示なら次ページへ自動スキップ」の検証に使う。
+  次ページリンクは無し（スキップが連鎖しないようにするため）。
+-->
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>渋谷の飲食店 2ページ目 - 食べログ（再現ページ）</title>
+</head>
+<body>
+
+<form class="rstlst-search-header" action="/rstLst/">
+  <input class="rstlst-search-header__keyword" type="text" value="渋谷" placeholder="キーワード">
+  <span class="rstlst-search-header__detail">詳細条件</span>
+  <span class="rstlst-search-header__search-button-wrap"><button type="button">検索</button></span>
+</form>
+
+<div class="c-page-count"><span class="c-page-count__num">120件</span></div>
+
+<ul class="js-rstlist-info rstlist-info">
+  <li class="list-rst js-rstlist-item" data-rst-id="21">
+    <div class="list-rst__wrap">
+      <div class="list-rst__rst-data">
+        <h3 class="list-rst__rst-name"><a class="list-rst__rst-name-target cpy-rst-name" href="/tokyo/A1303/A130301/13000021/">ビストロ ルミエール</a></h3>
+        <span class="list-rst__area-genre cpy-area-genre">渋谷 / フレンチ、ビストロ</span>
+        <span class="list-rst__budget">￥8,000～￥9,999</span>
+      </div>
+    </div>
+  </li>
+  <li class="list-rst js-rstlist-item" data-rst-id="22">
+    <div class="list-rst__wrap">
+      <div class="list-rst__rst-data">
+        <h3 class="list-rst__rst-name"><a class="list-rst__rst-name-target cpy-rst-name" href="/tokyo/A1303/A130301/13000022/">蕎麦 松風</a></h3>
+        <span class="list-rst__area-genre cpy-area-genre">渋谷 / そば、天ぷら</span>
+        <span class="list-rst__budget">￥1,000～￥1,999</span>
+      </div>
+    </div>
+  </li>
+</ul>
+
+</body>
+</html>

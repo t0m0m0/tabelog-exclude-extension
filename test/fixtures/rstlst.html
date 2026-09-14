@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<!--
+  食べログの検索結果ページ（/rstLst/）のマークアップを再現したテスト用ページ。
+  content.js が参照するクラス名（list-rst / list-rst__rst-name-target /
+  list-rst__area-genre / cpy-area-genre / c-page-count / c-pagination）のみを再現し、
+  スタイルは可読性のための最小限。
+
+  注意: キーワードで全件が非表示になると「次ページへ自動スキップ」が働くため、
+  どのテストキーワードでも最低1件は残るよう店舗を用意している。
+-->
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>渋谷の飲食店 - 食べログ（再現ページ）</title>
+<style>
+  body { font-family: sans-serif; margin: 0; background: #f6f6f6; color: #222; }
+  form.rstlst-search-header { display: flex; align-items: center; gap: 8px; background: #fff; border-bottom: 1px solid #ccc; padding: 8px 12px; }
+  .rstlst-search-header__keyword { height: 36px; }
+  .rstlst-search-header__detail { font-size: 12px; color: #666; }
+  .rstlst-search-header__search-button-wrap button { height: 36px; }
+  .list-condition { padding: 8px 12px; }
+  .c-page-count { padding: 8px 12px; font-size: 13px; }
+  ul.js-rstlist-info { list-style: none; margin: 0; padding: 0 12px; }
+  li.list-rst { background: #fff; border: 1px solid #ddd; margin: 8px 0; padding: 10px 12px; }
+  .list-rst__rst-name { margin: 0 0 4px; font-size: 16px; }
+  .list-rst__area-genre { color: #666; font-size: 13px; }
+  .list-rst__budget { color: #999; font-size: 12px; }
+</style>
+</head>
+<body>
+
+<form class="rstlst-search-header" action="/rstLst/">
+  <input class="rstlst-search-header__keyword" type="text" value="渋谷" placeholder="キーワード">
+  <span class="rstlst-search-header__detail">詳細条件</span>
+  <span class="rstlst-search-header__search-button-wrap"><button type="button">検索</button></span>
+</form>
+
+<div class="c-page-count"><span class="c-page-count__num">120件</span></div>
+
+<ul class="js-rstlist-info rstlist-info">
+  <li class="list-rst js-rstlist-item" data-rst-id="1">
+    <div class="list-rst__wrap">
+      <div class="list-rst__rst-data">
+        <h3 class="list-rst__rst-name"><a class="list-rst__rst-name-target cpy-rst-name" href="/tokyo/A1303/A130301/13000001/">牛角 渋谷センター街店</a></h3>
+        <span class="list-rst__area-genre cpy-area-genre">渋谷 / 焼肉、ホルモン、韓国料理</span>
+        <span class="list-rst__budget">￥3,000～￥3,999</span>
+      </div>
+    </div>
+  </li>
+  <li class="list-rst js-rstlist-item" data-rst-id="2">
+    <div class="list-rst__wrap">
+      <div class="list-rst__rst-data">
+        <h3 class="list-rst__rst-name"><a class="list-rst__rst-name-target cpy-rst-name" href="/tokyo/A1303/A130301/13000002/">鮨 さいとう</a></h3>
+        <span class="list-rst__area-genre cpy-area-genre">渋谷 / 寿司、日本料理</span>
+        <span class="list-rst__budget">￥30,000～￥39,999</span>
+      </div>
+    </div>
+  </li>
+  <li class="list-rst js-rstlist-item" data-rst-id="3">
+    <div class="list-rst__wrap">
+      <div class="list-rst__rst-data">
+        <h3 class="list-rst__rst-name"><a class="list-rst__rst-name-target cpy-rst-name" href="/tokyo/A1303/A130301/13000003/">すき家 渋谷道玄坂店</a></h3>
+        <span class="list-rst__area-genre cpy-area-genre">渋谷 / 牛丼、定食</span>
+        <span class="list-rst__budget">～￥999</span>
+      </div>
+    </div>
+  </li>
+  <li class="list-rst js-rstlist-item" data-rst-id="4">
+    <div class="list-rst__wrap">
+      <div class="list-rst__rst-data">
+        <h3 class="list-rst__rst-name"><a class="list-rst__rst-name-target cpy-rst-name" href="/tokyo/A1303/A130301/13000004/">大衆焼肉 かるび家</a></h3>
+        <span class="list-rst__area-genre cpy-area-genre">神泉 / 居酒屋、串焼き</span>
+        <span class="list-rst__budget">￥2,000～￥2,999</span>
+      </div>
+    </div>
+  </li>
+  <li class="list-rst js-rstlist-item" data-rst-id="5">
+    <div class="list-rst__wrap">
+      <div class="list-rst__rst-data">
+        <h3 class="list-rst__rst-name"><a class="list-rst__rst-name-target cpy-rst-name" href="/tokyo/A1303/A130301/13000005/">トラットリア ボナセーラ</a></h3>
+        <span class="list-rst__area-genre cpy-area-genre">焼肉横丁 / イタリアン、ワインバー</span>
+        <span class="list-rst__budget">￥5,000～￥5,999</span>
+      </div>
+    </div>
+  </li>
+  <li class="list-rst js-rstlist-item" data-rst-id="6">
+    <div class="list-rst__wrap">
+      <div class="list-rst__rst-data">
+        <h3 class="list-rst__rst-name"><a class="list-rst__rst-name-target cpy-rst-name" href="/tokyo/A1303/A130301/13000006/">ＨＯＲＵＭＯＮ 焼肉ＫＩＮＧ</a></h3>
+        <span class="list-rst__area-genre cpy-area-genre">渋谷 / ホルモン</span>
+        <span class="list-rst__budget">￥4,000～￥4,999</span>
+      </div>
+    </div>
+  </li>
+</ul>
+
+<div class="c-pagination">
+  <span class="c-pagination__arrow--next"><a href="/tokyo/A1303/A130301/rstLst/2/">次の20件</a></span>
+</div>
+
+</body>
+</html>
