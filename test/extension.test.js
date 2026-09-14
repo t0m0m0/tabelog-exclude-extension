@@ -15,9 +15,7 @@ const { chromium } = require('playwright');
 const EXTENSION_DIR = path.resolve(__dirname, '..');
 const PAGE_URL = 'https://tabelog.com/tokyo/A1303/A130301/rstLst/';
 
-const readFixture = (name) => fs.readFileSync(path.join(__dirname, 'fixtures', name), 'utf8');
-const PAGE_1 = readFixture('rstlst.html');
-const PAGE_2 = readFixture('rstlst-page2.html');
+const FIXTURE = fs.readFileSync(path.join(__dirname, 'fixtures', 'rstlst.html'), 'utf8');
 
 const ALL_NAMES = [
   '牛角 渋谷センター街店',
@@ -38,12 +36,11 @@ let page;
 
 const openPage = async () => {
   const target = await context.newPage();
-  await target.route('**/*', (route) => {
-    const url = route.request().url();
-    if (!url.includes('tabelog.com')) return route.abort();
-    const body = url.includes('/rstLst/2/') ? PAGE_2 : PAGE_1;
-    return route.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body });
-  });
+  await target.route('**/*', (route) =>
+    route.request().url().includes('tabelog.com')
+      ? route.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: FIXTURE })
+      : route.abort()
+  );
   await target.goto(PAGE_URL);
   await target.waitForSelector('.tlx-exclude__input');
   return target;
@@ -183,16 +180,26 @@ test('キーワードを保存し、別タブでも復元して適用する', as
   await setKeywords(page, '');
 });
 
-test('全件が非表示になったら次のページへ自動スキップする', async () => {
-  const skipPage = await openPage();
-  try {
-    await skipPage.fill('.tlx-exclude__input', '牛角 さいとう すき家 かるび ボナセーラ king 大山 松月');
-    await skipPage.waitForURL('**/rstLst/2/', { timeout: 10000 });
-    await skipPage.waitForSelector('.tlx-exclude__input');
-    await skipPage.waitForTimeout(500);
-    assert.deepEqual(await visibleNames(skipPage), ['ビストロ ルミエール', '蕎麦 松風']);
-  } finally {
-    await skipPage.close();
-  }
+test('全件が除外されたら理由を表示し、ページは移動しない', async () => {
+  const url = page.url();
+  await setKeywords(page, '牛角 さいとう すき家 かるび ボナセーラ king 大山 松月');
+  assert.deepEqual(await visibleNames(page), []);
+
+  assert.equal(
+    await page.$eval('.tlx-all-hidden-note', (el) => el.textContent.trim()),
+    'このページの8件は、除外キーワードによりすべて非表示になっています。'
+  );
+
+  // 次ページへ自動遷移しない（遅れて遷移しないことも確かめる）
+  await page.waitForTimeout(1500);
+  assert.equal(page.url(), url);
+
+  await setKeywords(page, '');
+  assert.equal(await page.$$eval('.tlx-all-hidden-note', (els) => els.length), 0);
+});
+
+test('一部だけ除外されたときは全件除外の表示を出さない', async () => {
+  await setKeywords(page, '焼肉');
+  assert.equal(await page.$$eval('.tlx-all-hidden-note', (els) => els.length), 0);
   await setKeywords(page, '');
 });

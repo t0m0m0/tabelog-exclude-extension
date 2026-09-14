@@ -3,6 +3,7 @@
   const HIDDEN_CLASS = 'tlx-hidden';
   const INJECTED_ATTR = 'data-tlx-injected';
   const PAGE_COUNT_NOTE_CLASS = 'tlx-page-count-note';
+  const ALL_HIDDEN_NOTE_CLASS = 'tlx-all-hidden-note';
 
   const SEARCH_BOX_SELECTORS = [
     '.list-condition',
@@ -35,20 +36,9 @@
     '.list-rst__genre',
   ];
 
-  const NEXT_PAGE_SELECTORS = [
-    'a[rel="next"]',
-    '.c-pagination__arrow--next > a',
-    '.c-pagination__arrow--next',
-    '.js-pg-next',
-    '[data-page="next"] a',
-    '.pagination .next a',
-    'a.next',
-  ];
-
   let currentKeywords = [];
   let observer = null;
   let saveTimer = null;
-  let isNavigating = false;
 
   const normalize = (s) => (s || '').normalize('NFKC').toLowerCase().trim();
 
@@ -128,44 +118,38 @@
     const total = allCards.size;
 
     if (currentKeywords.length === 0) {
-      updateCounter(0);
+      updateCounter(total, 0);
       return { total, hidden: 0 };
     }
 
     let hidden = 0;
+    const hiddenCards = [];
     allCards.forEach((card) => {
       if (!shouldHide(card)) return;
       card.classList.add(HIDDEN_CLASS);
+      hiddenCards.push(card);
       hidden += 1;
     });
 
-    updateCounter(hidden);
+    updateCounter(total, hidden, hiddenCards[0]);
     return { total, hidden };
   };
 
-  const findNextPageLink = () => {
-    for (const sel of NEXT_PAGE_SELECTORS) {
-      const el = document.querySelector(sel);
-      if (!el) continue;
-      const anchor = el.tagName === 'A' ? el : el.querySelector('a[href]');
-      if (anchor && anchor.href && !anchor.href.endsWith('#')) return anchor;
-    }
-    return null;
-  };
-
-  const autoSkipIfAllHidden = ({ total, hidden }) => {
-    if (isNavigating) return;
-    if (currentKeywords.length === 0) return;
-    if (total === 0) return;
-    if (hidden < total) return;
-    const nextLink = findNextPageLink();
-    if (!nextLink) return;
-    isNavigating = true;
-    location.href = nextLink.href;
-  };
-
-  const updateCounter = (hidden) => {
+  const updateCounter = (total, hidden, aHiddenCard) => {
     updatePageCountNote(hidden);
+    updateAllHiddenNote(total, hidden, aHiddenCard);
+  };
+
+  // このページの全件が除外されたとき、一覧が空になった理由を示す
+  const updateAllHiddenNote = (total, hidden, aHiddenCard) => {
+    document.querySelectorAll('.' + ALL_HIDDEN_NOTE_CLASS).forEach((el) => el.remove());
+    if (total === 0 || hidden < total) return;
+    const list = aHiddenCard && aHiddenCard.parentElement;
+    if (!list || !list.parentElement) return;
+    const note = document.createElement('div');
+    note.className = ALL_HIDDEN_NOTE_CLASS;
+    note.textContent = `このページの${total}件は、除外キーワードによりすべて非表示になっています。`;
+    list.parentElement.insertBefore(note, list);
   };
 
   const updatePageCountNote = (hidden) => {
@@ -194,7 +178,7 @@
 
     input.addEventListener('input', () => {
       currentKeywords = parseKeywords(input.value);
-      autoSkipIfAllHidden(applyFilter());
+      applyFilter();
       if (saveTimer) clearTimeout(saveTimer);
       saveTimer = setTimeout(() => {
         chrome.storage.sync.set({ [STORAGE_KEY]: input.value });
@@ -253,14 +237,14 @@
   const onMutations = () => {
     runWithoutObserver(() => {
       injectUi();
-      autoSkipIfAllHidden(applyFilter());
+      applyFilter();
     });
   };
 
   const start = () => {
     runWithoutObserver(() => {
       injectUi();
-      autoSkipIfAllHidden(applyFilter());
+      applyFilter();
     });
     observer = new MutationObserver(onMutations);
     observer.observe(document.body, { childList: true, subtree: true });
@@ -284,7 +268,7 @@
       input.value = newRaw || '';
     }
     runWithoutObserver(() => {
-      autoSkipIfAllHidden(applyFilter());
+      applyFilter();
     });
   });
 })();
