@@ -22,9 +22,15 @@
     '.cpy-rst-name',
   ];
 
-  const RST_GENRE_SELECTORS = [
+  // 「エリア / ジャンル1、ジャンル2」形式の要素。エリア部分を除去して照合する
+  const RST_AREA_GENRE_SELECTORS = [
     '.list-rst__area-genre',
     '.cpy-area-genre',
+  ];
+
+  // ジャンルのみの要素。「焼肉 / ホルモン」のようにスラッシュ区切りでも
+  // 先頭はエリアではないため、テキストをそのまま照合する
+  const RST_GENRE_SELECTORS = [
     '.list-rst__rst-genre',
     '.list-rst__genre',
   ];
@@ -72,9 +78,9 @@
     return elements;
   };
 
-  const collectTexts = (card, selectors) => {
+  const textsOf = (elements) => {
     const texts = [];
-    collectElements(card, selectors).forEach((el) => {
+    elements.forEach((el) => {
       const text = (el.textContent || '').trim();
       if (text) texts.push(text);
     });
@@ -82,7 +88,7 @@
   };
 
   // 「エリア / ジャンル1、ジャンル2」形式からジャンル部分だけを取り出す
-  const extractGenre = (text) => {
+  const stripArea = (text) => {
     const idx = text.search(/[／/]/);
     return idx === -1 ? text : text.slice(idx + 1);
   };
@@ -100,9 +106,17 @@
 
   // 店名・ジャンルは要素ごとに個別照合する（連結して要素をまたいだ誤一致を防ぐ）
   const shouldHide = (card) => {
-    const names = collectTexts(card, RST_NAME_SELECTORS).map(normalize);
-    const genres = collectTexts(card, RST_GENRE_SELECTORS).map((text) => normalize(extractGenre(text)));
-    const targets = names.concat(genres).filter(Boolean);
+    const areaGenreEls = collectElements(card, RST_AREA_GENRE_SELECTORS);
+    const genreEls = collectElements(card, RST_GENRE_SELECTORS);
+    // 同一要素が両方にマッチした場合は「エリア / ジャンル」としての扱いを優先する
+    areaGenreEls.forEach((el) => genreEls.delete(el));
+
+    const targets = textsOf(collectElements(card, RST_NAME_SELECTORS))
+      .concat(textsOf(areaGenreEls).map(stripArea))
+      .concat(textsOf(genreEls))
+      .map(normalize)
+      .filter(Boolean);
+
     if (targets.length === 0) return false;
     return currentKeywords.some((kw) => targets.some((text) => text.includes(kw)));
   };

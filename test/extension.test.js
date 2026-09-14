@@ -26,7 +26,11 @@ const ALL_NAMES = [
   '大衆焼肉 かるび家',
   'トラットリア ボナセーラ',
   'ＨＯＲＵＭＯＮ 焼肉ＫＩＮＧ',
+  '炭火 大山商店',
+  '手打ち 松月庵',
 ];
+
+const without = (...names) => ALL_NAMES.filter((name) => !names.includes(name));
 
 let context;
 let userDataDir;
@@ -94,43 +98,61 @@ test('キーワード未入力なら全件表示する', async () => {
 
 test('ジャンルにキーワードを含む店を除外する', async () => {
   await setKeywords(page, '焼肉');
-  assert.deepEqual(await visibleNames(page), [
-    '鮨 さいとう',
-    'すき家 渋谷道玄坂店',
-    // ジャンルが「イタリアン、ワインバー」なので、エリア名「焼肉横丁」では除外しない
-    'トラットリア ボナセーラ',
-  ]);
+  assert.deepEqual(
+    await visibleNames(page),
+    without(
+      '牛角 渋谷センター街店', // ジャンル「焼肉、ホルモン、韓国料理」
+      '大衆焼肉 かるび家', // 店名
+      'ＨＯＲＵＭＯＮ 焼肉ＫＩＮＧ', // 店名
+      '炭火 大山商店' // ジャンル専用要素「ジンギスカン / 焼肉、ホルモン」
+    )
+  );
+  // ジャンルは「イタリアン、ワインバー」なので、エリア名「焼肉横丁」では除外しない
+  assert.ok((await visibleNames(page)).includes('トラットリア ボナセーラ'));
+});
+
+test('エリアを含まないジャンル専用要素は先頭のジャンルでも除外する', async () => {
+  // .list-rst__rst-genre の「ジンギスカン / 焼肉、ホルモン」。
+  // スラッシュ区切りでも先頭はエリアではないため、除去してはいけない
+  await setKeywords(page, 'ジンギスカン');
+  assert.deepEqual(await visibleNames(page), without('炭火 大山商店'));
+
+  // .list-rst__genre の「そば / うどん」
+  await setKeywords(page, 'そば');
+  assert.deepEqual(await visibleNames(page), without('手打ち 松月庵'));
+
+  // 2つ目以降のジャンルでも除外できる
+  await setKeywords(page, 'うどん');
+  assert.deepEqual(await visibleNames(page), without('手打ち 松月庵'));
 });
 
 test('ジャンルにのみ一致するキーワードでも除外する', async () => {
   // 「寿司」「ホルモン」はどの店名にも含まれず、ジャンル表記にだけ現れる
   await setKeywords(page, '寿司、ホルモン');
-  assert.deepEqual(await visibleNames(page), [
-    'すき家 渋谷道玄坂店',
-    '大衆焼肉 かるび家',
-    'トラットリア ボナセーラ',
-  ]);
+  assert.deepEqual(
+    await visibleNames(page),
+    without(
+      '牛角 渋谷センター街店',
+      '鮨 さいとう',
+      'ＨＯＲＵＭＯＮ 焼肉ＫＩＮＧ',
+      '炭火 大山商店'
+    )
+  );
 });
 
 test('店名にキーワードを含む店を除外する', async () => {
   await setKeywords(page, 'すき家');
-  assert.deepEqual(
-    await visibleNames(page),
-    ALL_NAMES.filter((name) => name !== 'すき家 渋谷道玄坂店')
-  );
+  assert.deepEqual(await visibleNames(page), without('すき家 渋谷道玄坂店'));
 });
 
 test('全角・大文字小文字を正規化して照合する', async () => {
   await setKeywords(page, 'horumon');
-  assert.deepEqual(
-    await visibleNames(page),
-    ALL_NAMES.filter((name) => name !== 'ＨＯＲＵＭＯＮ 焼肉ＫＩＮＧ')
-  );
+  assert.deepEqual(await visibleNames(page), without('ＨＯＲＵＭＯＮ 焼肉ＫＩＮＧ'));
 });
 
 test('非表示件数を件数表示に添える', async () => {
   await setKeywords(page, 'ホルモン');
-  assert.equal(await page.$eval('.c-page-count', (el) => el.textContent.trim()), '120件（うち2件を非表示）');
+  assert.equal(await page.$eval('.c-page-count', (el) => el.textContent.trim()), '120件（うち3件を非表示）');
 
   await setKeywords(page, '');
   assert.equal(await page.$$eval('.tlx-page-count-note', (els) => els.length), 0);
@@ -151,12 +173,10 @@ test('キーワードを保存し、別タブでも復元して適用する', as
   try {
     await another.waitForTimeout(500);
     assert.equal(await another.$eval('.tlx-exclude__input', (el) => el.value), 'ホルモン');
-    assert.deepEqual(await visibleNames(another), [
-      '鮨 さいとう',
-      'すき家 渋谷道玄坂店',
-      '大衆焼肉 かるび家',
-      'トラットリア ボナセーラ',
-    ]);
+    assert.deepEqual(
+      await visibleNames(another),
+      without('牛角 渋谷センター街店', 'ＨＯＲＵＭＯＮ 焼肉ＫＩＮＧ', '炭火 大山商店')
+    );
   } finally {
     await another.close();
   }
@@ -166,7 +186,7 @@ test('キーワードを保存し、別タブでも復元して適用する', as
 test('全件が非表示になったら次のページへ自動スキップする', async () => {
   const skipPage = await openPage();
   try {
-    await skipPage.fill('.tlx-exclude__input', '牛角 さいとう すき家 かるび ボナセーラ king');
+    await skipPage.fill('.tlx-exclude__input', '牛角 さいとう すき家 かるび ボナセーラ king 大山 松月');
     await skipPage.waitForURL('**/rstLst/2/', { timeout: 10000 });
     await skipPage.waitForSelector('.tlx-exclude__input');
     await skipPage.waitForTimeout(500);
