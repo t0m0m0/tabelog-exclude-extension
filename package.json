@@ -4,7 +4,7 @@
   "private": true,
   "description": "食べログの検索結果から、店名またはジャンルに指定キーワードを含む店舗を除外するChrome拡張機能",
   "scripts": {
-    "test": "node --test test/*.test.js"
+    "test": "node --test"
   },
   "devDependencies": {
     "playwright": "1.56.1"
