@@ -1,0 +1,26 @@
+# 依存関係
+node_modules/
+
+# Playwright
+test-results/
+playwright-report/
+.playwright/
+
+# ストア提出用にローカルで作るパッケージ
+*.zip
+
+# ログ
+npm-debug.log*
+yarn-error.log*
+*.log
+
+# OS が作るファイル
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# エディタ
+.vscode/
+.idea/
+*.swp
+*~

@@ -3,6 +3,7 @@
   const HIDDEN_CLASS = 'tlx-hidden';
   const INJECTED_ATTR = 'data-tlx-injected';
   const PAGE_COUNT_NOTE_CLASS = 'tlx-page-count-note';
+  const ALL_HIDDEN_NOTE_CLASS = 'tlx-all-hidden-note';
 
   const SEARCH_BOX_SELECTORS = [
     '.list-condition',
@@ -22,20 +23,22 @@
     '.cpy-rst-name',
   ];
 
-  const NEXT_PAGE_SELECTORS = [
-    'a[rel="next"]',
-    '.c-pagination__arrow--next > a',
-    '.c-pagination__arrow--next',
-    '.js-pg-next',
-    '[data-page="next"] a',
-    '.pagination .next a',
-    'a.next',
+  // 「エリア / ジャンル1、ジャンル2」形式の要素。エリア部分を除去して照合する
+  const RST_AREA_GENRE_SELECTORS = [
+    '.list-rst__area-genre',
+    '.cpy-area-genre',
+  ];
+
+  // ジャンルのみの要素。「焼肉 / ホルモン」のようにスラッシュ区切りでも
+  // 先頭はエリアではないため、テキストをそのまま照合する
+  const RST_GENRE_SELECTORS = [
+    '.list-rst__rst-genre',
+    '.list-rst__genre',
   ];
 
   let currentKeywords = [];
   let observer = null;
   let saveTimer = null;
-  let isNavigating = false;
 
   const normalize = (s) => (s || '').normalize('NFKC').toLowerCase().trim();
 
@@ -56,64 +59,97 @@
     return null;
   };
 
+  // セレクタが重複してマッチしても同じ要素は1回だけ返す
+  const collectElements = (card, selectors) => {
+    const elements = new Set();
+    for (const sel of selectors) {
+      card.querySelectorAll(sel).forEach((el) => elements.add(el));
+    }
+    return elements;
+  };
+
+  const textsOf = (elements) => {
+    const texts = [];
+    elements.forEach((el) => {
+      const text = (el.textContent || '').trim();
+      if (text) texts.push(text);
+    });
+    return texts;
+  };
+
+  // 「エリア / ジャンル1、ジャンル2」形式からジャンル部分だけを取り出す
+  const stripArea = (text) => {
+    const idx = text.search(/[／/]/);
+    return idx === -1 ? text : text.slice(idx + 1);
+  };
+
+  const collectCards = () => {
+    const cards = new Set();
+    for (const sel of RST_NAME_SELECTORS) {
+      document.querySelectorAll(sel).forEach((nameEl) => {
+        const card = findCardContainer(nameEl);
+        if (card) cards.add(card);
+      });
+    }
+    return cards;
+  };
+
+  // 店名・ジャンルは要素ごとに個別照合する（連結して要素をまたいだ誤一致を防ぐ）
+  const shouldHide = (card) => {
+    const areaGenreEls = collectElements(card, RST_AREA_GENRE_SELECTORS);
+    const genreEls = collectElements(card, RST_GENRE_SELECTORS);
+    // 同一要素が両方にマッチした場合は「エリア / ジャンル」としての扱いを優先する
+    areaGenreEls.forEach((el) => genreEls.delete(el));
+
+    const targets = textsOf(collectElements(card, RST_NAME_SELECTORS))
+      .concat(textsOf(areaGenreEls).map(stripArea))
+      .concat(textsOf(genreEls))
+      .map(normalize)
+      .filter(Boolean);
+
+    if (targets.length === 0) return false;
+    return currentKeywords.some((kw) => targets.some((text) => text.includes(kw)));
+  };
+
   const applyFilter = () => {
     document.querySelectorAll('.' + HIDDEN_CLASS).forEach((el) => el.classList.remove(HIDDEN_CLASS));
 
-    const allCards = new Set();
-    for (const sel of RST_NAME_SELECTORS) {
-      document.querySelectorAll(sel).forEach((nameEl) => {
-        const card = findCardContainer(nameEl);
-        if (card) allCards.add(card);
-      });
-    }
+    const allCards = collectCards();
     const total = allCards.size;
 
     if (currentKeywords.length === 0) {
-      updateCounter(0);
+      updateCounter(total, 0);
       return { total, hidden: 0 };
     }
 
-    const hiddenCards = new Set();
-    for (const sel of RST_NAME_SELECTORS) {
-      document.querySelectorAll(sel).forEach((nameEl) => {
-        const name = normalize(nameEl.textContent);
-        if (!name) return;
-        if (!currentKeywords.some((kw) => name.includes(kw))) return;
-        const card = findCardContainer(nameEl);
-        if (card && !hiddenCards.has(card)) {
-          card.classList.add(HIDDEN_CLASS);
-          hiddenCards.add(card);
-        }
-      });
-    }
+    let hidden = 0;
+    const hiddenCards = [];
+    allCards.forEach((card) => {
+      if (!shouldHide(card)) return;
+      card.classList.add(HIDDEN_CLASS);
+      hiddenCards.push(card);
+      hidden += 1;
+    });
 
-    updateCounter(hiddenCards.size);
-    return { total, hidden: hiddenCards.size };
+    updateCounter(total, hidden, hiddenCards[0]);
+    return { total, hidden };
   };
 
-  const findNextPageLink = () => {
-    for (const sel of NEXT_PAGE_SELECTORS) {
-      const el = document.querySelector(sel);
-      if (!el) continue;
-      const anchor = el.tagName === 'A' ? el : el.querySelector('a[href]');
-      if (anchor && anchor.href && !anchor.href.endsWith('#')) return anchor;
-    }
-    return null;
-  };
-
-  const autoSkipIfAllHidden = ({ total, hidden }) => {
-    if (isNavigating) return;
-    if (currentKeywords.length === 0) return;
-    if (total === 0) return;
-    if (hidden < total) return;
-    const nextLink = findNextPageLink();
-    if (!nextLink) return;
-    isNavigating = true;
-    location.href = nextLink.href;
-  };
-
-  const updateCounter = (hidden) => {
+  const updateCounter = (total, hidden, aHiddenCard) => {
     updatePageCountNote(hidden);
+    updateAllHiddenNote(total, hidden, aHiddenCard);
+  };
+
+  // このページの全件が除外されたとき、一覧が空になった理由を示す
+  const updateAllHiddenNote = (total, hidden, aHiddenCard) => {
+    document.querySelectorAll('.' + ALL_HIDDEN_NOTE_CLASS).forEach((el) => el.remove());
+    if (total === 0 || hidden < total) return;
+    const list = aHiddenCard && aHiddenCard.parentElement;
+    if (!list || !list.parentElement) return;
+    const note = document.createElement('div');
+    note.className = ALL_HIDDEN_NOTE_CLASS;
+    note.textContent = `このページの${total}件は、除外キーワードによりすべて非表示になっています。`;
+    list.parentElement.insertBefore(note, list);
   };
 
   const updatePageCountNote = (hidden) => {
@@ -135,14 +171,14 @@
     const input = document.createElement('input');
     input.type = 'text';
     input.className = 'tlx-exclude__input';
-    input.placeholder = '除外キーワード（店名）';
+    input.placeholder = '除外キーワード（店名・ジャンル）';
     input.value = (currentKeywords || []).join(' ');
 
     wrapper.appendChild(input);
 
     input.addEventListener('input', () => {
       currentKeywords = parseKeywords(input.value);
-      autoSkipIfAllHidden(applyFilter());
+      applyFilter();
       if (saveTimer) clearTimeout(saveTimer);
       saveTimer = setTimeout(() => {
         chrome.storage.sync.set({ [STORAGE_KEY]: input.value });
@@ -201,14 +237,14 @@
   const onMutations = () => {
     runWithoutObserver(() => {
       injectUi();
-      autoSkipIfAllHidden(applyFilter());
+      applyFilter();
     });
   };
 
   const start = () => {
     runWithoutObserver(() => {
       injectUi();
-      autoSkipIfAllHidden(applyFilter());
+      applyFilter();
     });
     observer = new MutationObserver(onMutations);
     observer.observe(document.body, { childList: true, subtree: true });
@@ -232,7 +268,7 @@
       input.value = newRaw || '';
     }
     runWithoutObserver(() => {
-      autoSkipIfAllHidden(applyFilter());
+      applyFilter();
     });
   });
 })();
